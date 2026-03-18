@@ -9,5 +9,6 @@ include_directories(include)
 add_executable(reduce_bench
     src/main.cu
     src/reduce_baseline.cu
+    src/reduce_naive_v0.cu
     src/reduce_reference.cpp
 )

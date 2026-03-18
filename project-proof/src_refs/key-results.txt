@@ -1,0 +1,8 @@
+CPU: 1.67772e+07
+baseline GPU: 1.67772e+07
+baseline Diff: 0
+[baseline] 347.757 ms
+
+v0 GPU: 1.67772e+07
+v0 Diff: 0
+[v0] 0.46624 ms
