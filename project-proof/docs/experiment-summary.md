@@ -1,84 +1,42 @@
-# CUDA Reduction Optimization Record
+# CUDA Reduction 实验总结（baseline ~ v4）
 
-## Result Summary
-- Implementation: handwritten CUDA baseline and v0 reduction kernels
-- CPU result: `1.67772e+07`
-- baseline GPU result: `1.67772e+07`
-- baseline Diff: `0`
-- baseline latency: `347.757 ms`
-- v0 GPU result: `1.67772e+07`
-- v0 Diff: `0`
-- v0 latency: `0.46624 ms`
+## 1) 实验目标
+验证 CUDA reduction 从 `baseline` 到 `v4` 的优化收益，比较各版本在同一输入规模下的正确性与延迟表现。
 
-## Correctness
-- baseline matches CPU reference: `Diff = 0`
-- v0 matches CPU reference: `Diff = 0`
-- Both implementations passed correctness validation on the current input
+## 2) 核心结论
+- 所有版本（`baseline`、`v0`、`v1`、`v2`、`v3`、`v4`）均与 CPU 结果一致，`Diff = 0`。
+- 优化后性能显著提升：`v4` 延迟为 `0.376800 ms`，相对 `baseline`（`350.859 ms`）达到 **`931.15x`** 加速。
+- `v3` 与 `v4` 表现非常接近，`v4` 略优于 `v3`（`0.376800 ms` vs `0.376832 ms`）。
 
-## Baseline vs v0
-- baseline latency: `347.757 ms`
-- v0 latency: `0.46624 ms`
-- v0 preserves numerical correctness while significantly reducing kernel execution time
+## 3) 结果总表
+| version | cpu_result | gpu_result | diff | latency_ms | speedup_vs_baseline | correctness_pass |
+|---|---:|---:|---:|---:|---:|---|
+| baseline | 1.67772e+07 | 1.67772e+07 | 0 | 350.859000 | 1.00x | true |
+| v0 | 1.67772e+07 | 1.67772e+07 | 0 | 0.481216 | 729.11x | true |
+| v1 | 1.67772e+07 | 1.67772e+07 | 0 | 0.478624 | 733.06x | true |
+| v2 | 1.67772e+07 | 1.67772e+07 | 0 | 0.475488 | 737.89x | true |
+| v3 | 1.67772e+07 | 1.67772e+07 | 0 | 0.376832 | 931.08x | true |
+| v4 | 1.67772e+07 | 1.67772e+07 | 0 | 0.376800 | 931.15x | true |
 
-## Speedup
-- Formula: `speedup = baseline_time / optimized_time`
-- Computation: `347.757 / 0.46624 = 745.86`
-- Speedup: **`745.86x`**
-
-## Experiment Environment
-- GPU: `NVIDIA GeForce RTX 4070 Laptop GPU`
-- GPU memory: `8188 MiB`
-- Driver version: `581.57`
-- CUDA toolkit: `13.0 (V13.0.88)`
+## 4) 环境与配置
+- GPU: `NVIDIA GeForce RTX 4070 Laptop GPU`（`8188 MiB`）
+- Driver: `581.57`
+- CUDA: `13.0`
 - OS: `Ubuntu 24.04.3 LTS (WSL2, Linux 6.6.87.2-microsoft-standard-WSL2)`
 - CPU: `AMD Ryzen 9 7945HX with Radeon Graphics`
 - CMake: `3.28.3`
-- Host compiler: `g++ 13.3.0`
+- Compiler: `g++ 13.3.0`
+- 输入规模: `N = 1 << 24`
+- baseline 启动配置: `<<<1,1>>>`
+- 计时方式: `CUDA events`，含 warmup
 
-## Problem Configuration
-- Input size: `N = 1 << 24`
-- Data type: `float`
-- Reduction target: single scalar sum
-- baseline launch configuration: `<<<1,1>>>`
-- v0 block size: `256`
+## 5) 图表文件
+- `project-proof/docs/figures/latency_comparison.png`
+- `project-proof/docs/figures/latency_comparison_log.png`
+- `project-proof/docs/figures/latency_comparison_line.png`
+- `project-proof/docs/figures/correctness_check.png`
 
-## Timing Method
-- Timing was measured using CUDA events
-- A warmup run was executed before each timed run
-- Host-to-device transfer was completed before timing
-- Device-to-host transfer was performed after timing
-
-## Baseline Definition
-- baseline uses a single CUDA block and a single CUDA thread (`<<<1,1>>>`)
-- the kernel performs the full accumulation serially on the GPU
-- the result is written to device output memory after accumulation completes
-
-## v0 Definition
-- v0 uses block-level shared memory reduction
-- each kernel pass reduces the input into block-level partial sums
-- the host wrapper repeatedly launches the kernel until only one value remains
-
-## Why baseline and v0 differ
-- baseline is effectively a serial GPU implementation
-- v0 introduces block-level parallelism and shared-memory-based tree reduction
-- both implementations produced numerically identical results in the current experiment
-
-## Recommended Experiment Record Fields
-- project_name
-- experiment_date
-- version
-- input_size
-- cpu_result
-- gpu_result
-- diff
-- latency_ms
-- speedup
-- correctness_pass
-- commit_id
-- gpu_model
-- cuda_version
-- build_command
-- notes
-
-## Technical Note
-This experiment evaluates CUDA reduction kernel optimization from a baseline implementation to a v0 optimized version. The baseline GPU result matches the CPU reference and records a latency of `347.757 ms`. The v0 implementation also matches the CPU reference with `Diff = 0`, while reducing latency to `0.46624 ms`. Based on measured data, the v0 kernel achieves approximately `745.86x` speedup over the baseline. The result demonstrates that the current reduction optimization direction is effective and has been validated on both correctness and performance.
+## 6) 简要分析
+- `baseline` 使用近似串行的 GPU 归约方式，延迟远高于优化版本。
+- `v0`~`v2` 带来稳定提升，但幅度相对接近（约 `729x` 到 `738x`）。
+- `v3/v4` 是本轮最有效的优化阶段，速度提升到约 `931x`，并保持与 CPU 数值一致。

@@ -9,22 +9,33 @@ constexpr int kBlockSize = 256;
 
 template <int blockSize>
 
-__global__ void reduce_v1_kernel(const float* d_in, float* d_out, int n)
+__global__ void reduce_v3_kernel(const float* d_in, float* d_out, int n)
 {
     __shared__ float smem[blockSize];
 
     int tid = threadIdx.x;
 
-    int gtid = blockIdx.x * blockSize + threadIdx.x;
+    int gtid = blockIdx.x * (2 * blockSize) + threadIdx.x;
 
-    smem[tid] = (gtid < n) ? d_in[gtid] : 0.0f;
+    smem[tid] = 0.0f;
+
+    // v3: 让每个线程多干活，处理两个元素
+    if (gtid < n)
+    {
+        smem[tid] = d_in[gtid];
+    }
+    if (gtid + blockSize < n)
+    {
+        smem[tid] += d_in[gtid + blockSize];
+    }
 
     __syncthreads();
 
-    for (int index = 1; index < blockSize; index *= 2)
+    // 改动的部分：消除bank conflict，对半相加
+    //
+    for (unsigned int index = blockSize / 2; index > 0; index >>= 1)
     {
-        if ((tid & (2 * index - 1)) == 0 && tid + index < blockSize)
-        // mod 位运算，考虑做除法的 clocks数
+        if (tid < index) // tid<index: 当前线程ID小于index，说明当前线程ID在index之前，需要相加
         {
             smem[tid] += smem[tid + index];
         }
@@ -38,7 +49,7 @@ __global__ void reduce_v1_kernel(const float* d_in, float* d_out, int n)
 
 } // namespace
 
-void reduce_v1(const float* data, float* output, int n)
+void reduce_v3(const float* data, float* output, int n)
 {
     const float* d_current = data;
     float* d_next = nullptr;
@@ -52,11 +63,11 @@ void reduce_v1(const float* data, float* output, int n)
     while (current_n > 1)
     {
 
-        int grid = (current_n + kBlockSize - 1) / kBlockSize; // 向上取整
+        int grid = (current_n + (2 * kBlockSize - 1)) / (kBlockSize * 2); // 向上取整
 
         cudaMalloc(&d_next, grid * sizeof(float));
 
-        reduce_v1_kernel<kBlockSize><<<grid, kBlockSize>>>(d_current, d_next, current_n);
+        reduce_v3_kernel<kBlockSize><<<grid, kBlockSize>>>(d_current, d_next, current_n);
 
         if (current_is_temp)
         {

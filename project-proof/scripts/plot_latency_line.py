@@ -8,6 +8,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = ROOT / "project-proof" / "data" / "benchmark_results.csv"
 FIG_PATH = ROOT / "project-proof" / "docs" / "figures" / "latency_comparison_line.png"
+VERSION_ORDER = ("baseline", "v0", "v1", "v2", "v3", "v4")
 
 
 def load_benchmark_rows():
@@ -17,9 +18,18 @@ def load_benchmark_rows():
 
 
 rows = load_benchmark_rows()
-labels = [row["version"] for row in rows]
-latency_ms = [float(row["latency_ms"]) for row in rows]
-baseline_latency = latency_ms[0]
+row_by_version = {row["version"]: row for row in rows}
+ordered_rows = [row_by_version[v] for v in VERSION_ORDER if v in row_by_version]
+extra_rows = [row for row in rows if row["version"] not in VERSION_ORDER]
+plot_rows = ordered_rows + extra_rows
+
+labels = [row["version"] for row in plot_rows]
+latency_ms = [float(row["latency_ms"]) for row in plot_rows]
+baseline_latency = (
+    float(row_by_version["baseline"]["latency_ms"])
+    if "baseline" in row_by_version
+    else latency_ms[0]
+)
 speedups = [baseline_latency / value for value in latency_ms]
 x = np.arange(len(labels))
 
@@ -73,5 +83,6 @@ for xi, value, speedup in zip(zoom_x, zoom_latency, zoom_speedups):
 
 fig.suptitle("CUDA Reduction Latency Comparison", fontsize=13)
 fig.tight_layout()
+FIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 fig.savefig(FIG_PATH, dpi=200)
-plt.show()
+plt.close()

@@ -71,7 +71,7 @@ void reduce_v2(const float* data, float* output, int n)
 
         current_is_temp = true;
     }
-    cudaMemcpy(output, d_current, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(output, d_current, sizeof(float), cudaMemcpyDeviceToDevice);
     if (current_is_temp)
     {
         cudaFree((void*)d_current);

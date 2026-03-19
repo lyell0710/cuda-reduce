@@ -110,6 +110,44 @@ int main()
     // D2H
     cudaMemcpy(&v2_gpu, d_out, sizeof(float), cudaMemcpyDeviceToHost);
 
+    // ---------------- v3 ----------------
+    float v3_gpu = 0.0f;
+    float v3_ms = 0.0f;
+
+    // warmup
+    reduce_v3(d_in, d_out, N);
+    cudaDeviceSynchronize();
+
+    // timing
+    cudaEventRecord(start);
+    reduce_v3(d_in, d_out, N);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    cudaEventElapsedTime(&v3_ms, start, stop);
+
+    // D2H
+    cudaMemcpy(&v3_gpu, d_out, sizeof(float), cudaMemcpyDeviceToHost);
+
+    // ---------------- v4 ----------------
+    float v4_gpu = 0.0f;
+    float v4_ms = 0.0f;
+
+    // warmup
+    reduce_v4(d_in, d_out, N);
+    cudaDeviceSynchronize();
+
+    // timing
+    cudaEventRecord(start);
+    reduce_v4(d_in, d_out, N);
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    cudaEventElapsedTime(&v4_ms, start, stop);
+
+    // D2H
+    cudaMemcpy(&v4_gpu, d_out, sizeof(float), cudaMemcpyDeviceToHost);
+
     // print
     std::cout << "CPU: " << cpu << std::endl;
 
@@ -128,6 +166,14 @@ int main()
     std::cout << "v2 GPU: " << v2_gpu << std::endl;
     std::cout << "v2 Diff: " << std::fabs(cpu - v2_gpu) << std::endl;
     std::cout << "[v2] " << v2_ms << " ms" << std::endl;
+
+    std::cout << "v3 GPU: " << v3_gpu << std::endl;
+    std::cout << "v3 Diff: " << std::fabs(cpu - v3_gpu) << std::endl;
+    std::cout << "[v3] " << v3_ms << " ms" << std::endl;
+
+    std::cout << "v4 GPU: " << v4_gpu << std::endl;
+    std::cout << "v4 Diff: " << std::fabs(cpu - v4_gpu) << std::endl;
+    std::cout << "[v4] " << v4_ms << " ms" << std::endl;
 
     // free GPU memory
     cudaFree(d_in);

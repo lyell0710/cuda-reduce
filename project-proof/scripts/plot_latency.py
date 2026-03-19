@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 ROOT = Path(__file__).resolve().parents[2]
 CSV_PATH = ROOT / "project-proof" / "data" / "benchmark_results.csv"
 FIG_PATH = ROOT / "project-proof" / "docs" / "figures" / "latency_comparison.png"
+VERSION_ORDER = ("baseline", "v0", "v1", "v2", "v3", "v4")
 
 
 def load_benchmark_rows():
@@ -14,13 +15,26 @@ def load_benchmark_rows():
         reader = csv.DictReader(f)
         return list(reader)
 
+def pick_colors(count: int):
+    cmap = plt.get_cmap("tab10")
+    return [cmap(i % 10) for i in range(count)]
+
 
 rows = load_benchmark_rows()
-labels = [row["version"] for row in rows]
-latency_ms = [float(row["latency_ms"]) for row in rows]
-colors = ["#4C78A8", "#F58518", "#54A24B", "#E45756"][: len(labels)]
+row_by_version = {row["version"]: row for row in rows}
+ordered_rows = [row_by_version[v] for v in VERSION_ORDER if v in row_by_version]
+extra_rows = [row for row in rows if row["version"] not in VERSION_ORDER]
+plot_rows = ordered_rows + extra_rows
 
-baseline_latency = latency_ms[0]
+labels = [row["version"] for row in plot_rows]
+latency_ms = [float(row["latency_ms"]) for row in plot_rows]
+colors = pick_colors(len(labels))
+
+baseline_latency = (
+    float(row_by_version["baseline"]["latency_ms"])
+    if "baseline" in row_by_version
+    else latency_ms[0]
+)
 speedups = [baseline_latency / value for value in latency_ms]
 
 plt.figure(figsize=(8, 4.5))
@@ -41,8 +55,9 @@ plt.title("CUDA Reduction Latency Comparison")
 plt.ylabel("Latency (ms)")
 plt.xlabel("Version")
 plt.tight_layout()
+FIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 plt.savefig(FIG_PATH, dpi=200)
-plt.show()
+plt.close()
 
 for version, value, speedup in zip(labels, latency_ms, speedups):
     print(f"{version}: {value:.6f} ms, {speedup:.2f}x vs baseline")
