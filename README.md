@@ -1,39 +1,52 @@
 # cuda-reduce
 
-A handwritten CUDA reduction project for learning, benchmarking, and documenting kernel optimization.
+手写 CUDA reduction 优化实验项目，用于学习、基准测试和可复现记录。
 
-## what this project shows
-- step-by-step CUDA reduction optimization from `baseline` to `v5`
-- multiple kernel strategies (`baseline`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
-- correctness verification against a CPU reference on each version
-- reproducible benchmark records, plots, and summary docs in `project-proof/`
+## 项目目标
+- 从 `baseline` 逐步优化到 `v5`
+- 对比不同版本的性能与正确性
+- 生成结构化数据（CSV）和图表（PNG）用于文档留档
 
-## latest benchmark snapshot
-- input size: `N = 1 << 24`
-- baseline: `350.616 ms`
-- v0: `0.469760 ms` (`746.37x`)
-- v1: `0.467968 ms` (`749.23x`)
-- v2: `0.456000 ms` (`768.89x`)
-- v3: `0.378624 ms` (`926.03x`)
-- v4: `0.360384 ms` (`972.90x`)
-- v5: `0.365568 ms` (`959.10x`)
-- correctness: all GPU versions matched CPU (`Diff = 0`)
+## 当前实现版本
+- `baseline`: 单线程 GPU 归约基线
+- `v0`: shared-memory tree reduction
+- `v1` / `v2`: 逐步优化的 block 内归约策略
+- `v3`: 每线程处理两个元素，减少访存轮次
+- `v4`: warp 尾归约优化，减少尾部同步开销
+- `v5`: 在 `v4` 基础上做 block 内循环展开
 
-## repository layout
-- `src/`: kernel implementations and benchmark driver
-- `include/`: shared interfaces
-- `project-proof/data/`: benchmark/environment CSV records
-- `project-proof/scripts/`: plotting scripts
-- `project-proof/docs/`: figures and experiment summary
+## 最新基准快照（baseline ~ v5）
+- 输入规模：`N = 1 << 24`
+- baseline: `350.609680 ms`
+- v0: `0.512106 ms` (`684.64x`)
+- v1: `0.613744 ms` (`571.26x`)
+- v2: `0.601303 ms` (`583.08x`)
+- v3: `0.391285 ms` (`896.05x`)
+- v4: `0.391077 ms` (`896.52x`)
+- v5: `0.394127 ms` (`889.58x`)
+- 正确性：所有版本与 CPU 对齐（`Diff = 0`）
 
-## build
+> 说明：基准结果会随设备温度、功耗策略、后台负载出现小幅波动。
+
+## 目录结构
+- `src/`: 各版本 kernel 与 benchmark 入口
+- `include/`: 公共声明
+- `project-proof/data/`: 基准与环境 CSV
+- `project-proof/scripts/`: 画图脚本
+- `project-proof/docs/`: 图表与实验总结
+
+## 构建与运行
 ```bash
 cmake -S . -B build
 cmake --build build -j
 ./build/reduce_bench
 ```
 
-## regenerate proof figures
+## 基准流程说明
+- `main.cu` 采用多次迭代计时取均值（当前为 `100` 次）
+- 每次运行 `reduce_bench` 会自动覆盖刷新：`project-proof/data/benchmark_results.csv`
+
+## 生成图表
 ```bash
 python project-proof/scripts/plot_latency.py
 python project-proof/scripts/plot_latency_log.py
@@ -41,6 +54,6 @@ python project-proof/scripts/plot_latency_line.py
 python project-proof/scripts/plot_correctness.py
 ```
 
-## notes
-- benchmark data source: `project-proof/data/benchmark_results.csv`
-- full write-up: `project-proof/docs/experiment-summary.md`
+## 相关文档
+- 基准数据：`project-proof/data/benchmark_results.csv`
+- 实验总结：`project-proof/docs/experiment-summary.md`
