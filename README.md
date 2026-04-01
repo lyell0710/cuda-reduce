@@ -3,19 +3,20 @@
 A handwritten CUDA reduction project for learning, benchmarking, and documenting kernel optimization.
 
 ## what this project shows
-- step-by-step CUDA reduction optimization from `baseline` to `v4`
-- multiple kernel strategies (`baseline`, `v0`, `v1`, `v2`, `v3`, `v4`)
+- step-by-step CUDA reduction optimization from `baseline` to `v5`
+- multiple kernel strategies (`baseline`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`)
 - correctness verification against a CPU reference on each version
 - reproducible benchmark records, plots, and summary docs in `project-proof/`
 
 ## latest benchmark snapshot
 - input size: `N = 1 << 24`
-- baseline: `350.859 ms`
-- v0: `0.481216 ms` (`729.11x`)
-- v1: `0.478624 ms` (`733.06x`)
-- v2: `0.475488 ms` (`737.89x`)
-- v3: `0.376832 ms` (`931.08x`)
-- v4: `0.376800 ms` (`931.15x`)
+- baseline: `350.616 ms`
+- v0: `0.469760 ms` (`746.37x`)
+- v1: `0.467968 ms` (`749.23x`)
+- v2: `0.456000 ms` (`768.89x`)
+- v3: `0.378624 ms` (`926.03x`)
+- v4: `0.360384 ms` (`972.90x`)
+- v5: `0.365568 ms` (`959.10x`)
 - correctness: all GPU versions matched CPU (`Diff = 0`)
 
 ## repository layout
